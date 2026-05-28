@@ -1,0 +1,5 @@
+<<<<<<< HEAD
+Sultan is ready to fight against millitants
+=======
+Sultan is ready to fight against millitants
+>>>>>>> cd7429d9f936cca3505da743b7cc3b1f2102ea83

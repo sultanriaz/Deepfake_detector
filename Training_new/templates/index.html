@@ -1,0 +1,194 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <title>Deepfake Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #666;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        .fake {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .real {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        .confidence-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .confidence-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .fake-fill {
+            background-color: #c62828;
+        }
+        .real-fill {
+            background-color: #2e7d32;
+        }
+        .preview {
+            max-width: 300px;
+            max-height: 300px;
+            margin: 20px auto;
+            display: block;
+        }
+        button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Deepfake Detector</h1>
+        <p>Upload an image to check if it's REAL or FAKE</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>Click or drag image here</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+        
+        <img id="preview" class="preview" style="display: none;">
+        
+        <div id="result" class="result">
+            <h2 id="prediction"></h2>
+            <div class="confidence-bar">
+                <div id="confidenceFill" class="confidence-fill" style="width: 0%"></div>
+            </div>
+            <p id="confidenceText"></p>
+        </div>
+        
+        <button onclick="resetUpload()">Upload Another</button>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const result = document.getElementById('result');
+        const prediction = document.getElementById('prediction');
+        const confidenceFill = document.getElementById('confidenceFill');
+        const confidenceText = document.getElementById('confidenceText');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#2196f3';
+        });
+        
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+        
+        function handleFile(file) {
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            
+            // Upload and predict
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Show result
+                result.style.display = 'block';
+                result.className = 'result ' + data.prediction.toLowerCase();
+                prediction.textContent = `Prediction: ${data.prediction}`;
+                
+                const confidence = data.confidence.toFixed(2);
+                confidenceFill.style.width = confidence + '%';
+                confidenceFill.className = 'confidence-fill ' + data.prediction.toLowerCase() + '-fill';
+                confidenceText.textContent = `Confidence: ${confidence}%`;
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+        
+        function resetUpload() {
+            fileInput.value = '';
+            preview.style.display = 'none';
+            result.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
